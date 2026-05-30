@@ -1,0 +1,2332 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 智慧靈籤系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.min.js"></script>
+  <style>
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top, rgba(217, 119, 6, 0.24), transparent 30%),
+        radial-gradient(circle at bottom, rgba(168, 85, 247, 0.18), transparent 30%),
+        linear-gradient(180deg, #09090b 0%, #111827 55%, #1f2937 100%);
+    }
+
+    .vertical-poem-line {
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      letter-spacing: 0.2rem;
+    }
+
+    .mystic-glow {
+      animation: mysticGlow 2.2s ease-in-out infinite;
+    }
+
+    .shake-soft {
+      animation: shakeSoft 1s ease-in-out infinite;
+    }
+
+    .fortune-vessel {
+      animation: vesselSwing 1.2s ease-in-out infinite;
+      transform-origin: center bottom;
+    }
+
+    .fortune-vessel::before {
+      content: "";
+      position: absolute;
+      inset: 1rem;
+      border-radius: 9999px;
+      border: 1px solid rgba(251, 191, 36, 0.12);
+      pointer-events: none;
+    }
+
+    .fortune-stick {
+      width: 0.9rem;
+      border-radius: 9999px;
+      background: linear-gradient(180deg, rgba(254, 249, 195, 0.95) 0%, rgba(251, 191, 36, 0.95) 100%);
+      box-shadow: 0 0 18px rgba(251, 191, 36, 0.18);
+      transform-origin: center bottom;
+      animation: stickRise 1.1s ease-in-out infinite;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+      opacity: 0.72;
+    }
+
+    .fortune-stick:nth-child(2) { animation-delay: 0.12s; }
+    .fortune-stick:nth-child(3) { animation-delay: 0.24s; }
+    .fortune-stick:nth-child(4) { animation-delay: 0.36s; }
+    .fortune-stick:nth-child(5) { animation-delay: 0.48s; }
+
+    .fortune-stick.is-active {
+      opacity: 1;
+      transform: translateY(-0.8rem) scaleY(1.06);
+      box-shadow: 0 0 28px rgba(251, 191, 36, 0.45);
+    }
+
+    .fortune-vessel.is-settling {
+      animation-duration: 0.55s;
+      animation-iteration-count: 1;
+    }
+
+    .draw-orb {
+      animation: drawOrbPulse 1.8s ease-in-out infinite;
+    }
+
+    .draw-preview-digit {
+      animation: numberFlicker 0.9s ease-in-out infinite;
+    }
+
+    .persona-chip {
+      border: 1px solid rgba(251, 191, 36, 0.16);
+      background: rgba(28, 25, 23, 0.72);
+      color: rgb(231 229 228);
+      transition: all 0.2s ease;
+    }
+
+    .persona-chip:hover {
+      transform: translateY(-1px);
+      border-color: rgba(252, 211, 77, 0.34);
+      background: rgba(68, 64, 60, 0.88);
+    }
+
+    .persona-chip.is-active {
+      border-color: rgba(252, 211, 77, 0.48);
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.28), rgba(249, 115, 22, 0.18));
+      color: rgb(255 251 235);
+      box-shadow: 0 0 20px rgba(251, 191, 36, 0.12);
+    }
+
+    .jiaobei-shell {
+      position: relative;
+      width: 5.5rem;
+      height: 2.75rem;
+      border-radius: 1.2rem 1.2rem 2.7rem 2.7rem / 0.95rem 0.95rem 2.2rem 2.2rem;
+      background: linear-gradient(180deg, rgba(180, 83, 9, 0.98) 0%, rgba(146, 64, 14, 0.98) 58%, rgba(120, 53, 15, 0.98) 100%);
+      box-shadow: 0 1rem 1.8rem rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 251, 235, 0.15);
+      transition: transform 0.45s ease, filter 0.3s ease;
+      transform-style: preserve-3d;
+      overflow: hidden;
+    }
+
+    .jiaobei-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0.28rem 0.35rem 0.36rem;
+      border-radius: 0.95rem 0.95rem 2.3rem 2.3rem / 0.75rem 0.75rem 2rem 2rem;
+      background: linear-gradient(180deg, rgba(255, 251, 235, 0.95) 0%, rgba(254, 243, 199, 0.92) 100%);
+      box-shadow: inset 0 -0.35rem 0.8rem rgba(217, 119, 6, 0.15);
+    }
+
+    .jiaobei-shell::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 0.5rem;
+      width: 0.42rem;
+      height: 1.45rem;
+      transform: translateX(-50%);
+      border-radius: 9999px;
+      background: linear-gradient(180deg, rgba(153, 27, 27, 0.82) 0%, rgba(220, 38, 38, 0.46) 100%);
+      box-shadow: 0 0 0 1px rgba(255, 251, 235, 0.12);
+    }
+
+    .jiaobei-shell.is-tossing-left {
+      animation: jiaobeiSpinLeft 1.05s ease-in-out;
+    }
+
+    .jiaobei-shell.is-tossing-right {
+      animation: jiaobeiSpinRight 1.05s ease-in-out;
+    }
+
+    .jiaobei-shell.result-up-left {
+      transform: translateY(-0.2rem) rotate(-20deg);
+    }
+
+    .jiaobei-shell.result-up-right {
+      transform: translateY(-0.2rem) rotate(20deg);
+    }
+
+    .jiaobei-shell.result-down-left {
+      transform: translateY(0.7rem) rotate(195deg);
+    }
+
+    .jiaobei-shell.result-down-right {
+      transform: translateY(0.7rem) rotate(-195deg);
+    }
+
+    .jiaobei-shell.result-laugh-left {
+      transform: translateY(0.1rem) rotate(18deg);
+    }
+
+    .jiaobei-shell.result-laugh-right {
+      transform: translateY(0.1rem) rotate(-18deg);
+    }
+
+    .jiaobei-shell.result-lose-left {
+      transform: translateY(0.7rem) rotate(205deg);
+    }
+
+    .jiaobei-shell.result-lose-right {
+      transform: translateY(0.7rem) rotate(-205deg);
+    }
+
+    .jiaobei-shell.result-up-left,
+    .jiaobei-shell.result-up-right,
+    .jiaobei-shell.result-laugh-left,
+    .jiaobei-shell.result-laugh-right {
+      background: linear-gradient(180deg, rgba(217, 119, 6, 0.98) 0%, rgba(180, 83, 9, 0.98) 100%);
+      box-shadow: 0 1rem 1.8rem rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 251, 235, 0.24);
+    }
+
+    .jiaobei-shell.result-up-left::before,
+    .jiaobei-shell.result-up-right::before,
+    .jiaobei-shell.result-laugh-left::before,
+    .jiaobei-shell.result-laugh-right::before {
+      background: linear-gradient(180deg, rgba(255, 251, 235, 0.98) 0%, rgba(254, 243, 199, 0.94) 65%, rgba(253, 230, 138, 0.9) 100%);
+      box-shadow:
+        inset 0 -0.45rem 0.9rem rgba(217, 119, 6, 0.18),
+        inset 0 0.1rem 0 rgba(255, 255, 255, 0.55);
+    }
+
+    .jiaobei-shell.result-up-left::after,
+    .jiaobei-shell.result-up-right::after,
+    .jiaobei-shell.result-laugh-left::after,
+    .jiaobei-shell.result-laugh-right::after {
+      background: linear-gradient(180deg, rgba(153, 27, 27, 0.85) 0%, rgba(239, 68, 68, 0.52) 100%);
+      opacity: 1;
+    }
+
+    .jiaobei-shell.result-down-left,
+    .jiaobei-shell.result-down-right,
+    .jiaobei-shell.result-lose-left,
+    .jiaobei-shell.result-lose-right {
+      background: linear-gradient(180deg, rgba(120, 53, 15, 0.98) 0%, rgba(92, 38, 8, 0.98) 100%);
+      box-shadow: 0 1rem 1.8rem rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 251, 235, 0.08);
+    }
+
+    .jiaobei-shell.result-down-left::before,
+    .jiaobei-shell.result-down-right::before,
+    .jiaobei-shell.result-lose-left::before,
+    .jiaobei-shell.result-lose-right::before {
+      inset: 0.45rem 0.55rem 0.48rem;
+      border-radius: 0.9rem 0.9rem 2rem 2rem / 0.7rem 0.7rem 1.8rem 1.8rem;
+      background: radial-gradient(circle at 50% 28%, rgba(120, 53, 15, 0.22) 0%, rgba(68, 32, 10, 0.78) 42%, rgba(28, 25, 23, 0.96) 100%);
+      box-shadow:
+        inset 0 0.2rem 0.5rem rgba(255, 251, 235, 0.08),
+        inset 0 -0.5rem 0.8rem rgba(0, 0, 0, 0.35);
+    }
+
+    .jiaobei-shell.result-down-left::after,
+    .jiaobei-shell.result-down-right::after,
+    .jiaobei-shell.result-lose-left::after,
+    .jiaobei-shell.result-lose-right::after {
+      top: 0.65rem;
+      height: 1.2rem;
+      background: linear-gradient(180deg, rgba(251, 191, 36, 0.18) 0%, rgba(120, 53, 15, 0.02) 100%);
+      box-shadow: none;
+      opacity: 0.55;
+    }
+
+    .jiaobei-result-badge {
+      border: 1px solid rgba(251, 191, 36, 0.14);
+      background: rgba(28, 25, 23, 0.78);
+    }
+
+    .jiaobei-result-badge.is-success {
+      border-color: rgba(252, 211, 77, 0.35);
+      background: rgba(120, 53, 15, 0.26);
+      color: rgb(254 243 199);
+    }
+
+    .jiaobei-result-badge.is-failure {
+      border-color: rgba(248, 113, 113, 0.22);
+      background: rgba(127, 29, 29, 0.2);
+      color: rgb(254 226 226);
+    }
+
+    .draw-reveal-stick {
+      position: absolute;
+      top: -2.5rem;
+      left: 50%;
+      display: flex;
+      height: 12rem;
+      width: 2.5rem;
+      align-items: flex-start;
+      justify-content: center;
+      border-radius: 9999px;
+      background: linear-gradient(180deg, rgba(255, 251, 235, 0.98) 0%, rgba(252, 211, 77, 0.98) 30%, rgba(217, 119, 6, 0.95) 100%);
+      box-shadow: 0 0 22px rgba(251, 191, 36, 0.24);
+      color: #431407;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      opacity: 0;
+      transform: translate(-50%, -5rem) rotate(-10deg) scale(0.92);
+      transform-origin: center top;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .draw-reveal-stick::before {
+      content: "";
+      position: absolute;
+      top: 0.85rem;
+      left: 50%;
+      width: 1.2rem;
+      height: 1.2rem;
+      transform: translateX(-50%);
+      border-radius: 9999px;
+      background: rgba(255, 251, 235, 0.8);
+      box-shadow: 0 0 12px rgba(255, 251, 235, 0.4);
+    }
+
+    .draw-reveal-stick::after {
+      content: "";
+      position: absolute;
+      inset: 0.35rem;
+      border: 1px solid rgba(120, 53, 15, 0.16);
+      border-radius: 9999px;
+    }
+
+    .draw-reveal-stick.is-visible {
+      opacity: 1;
+    }
+
+    .draw-reveal-stick.is-dropping {
+      animation: revealStickDrop 1.2s cubic-bezier(0.2, 0.78, 0.2, 1) forwards;
+    }
+
+    .draw-reveal-stick-label {
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      margin-top: 2rem;
+      line-height: 1.15;
+    }
+
+    .draw-impact-ring {
+      position: absolute;
+      left: 50%;
+      bottom: 1.25rem;
+      width: 5rem;
+      height: 5rem;
+      border: 1px solid rgba(251, 191, 36, 0.4);
+      border-radius: 9999px;
+      opacity: 0;
+      transform: translateX(-50%) scale(0.4);
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .draw-impact-ring.is-active {
+      animation: impactRing 0.75s ease-out forwards;
+    }
+
+    @keyframes mysticGlow {
+      0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.28));
+      }
+      50% {
+        transform: scale(1.03);
+        filter: drop-shadow(0 0 22px rgba(251, 191, 36, 0.52));
+      }
+    }
+
+    @keyframes shakeSoft {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-2deg); }
+      75% { transform: rotate(2deg); }
+    }
+
+    @keyframes vesselSwing {
+      0%, 100% { transform: rotate(0deg) translateY(0); }
+      20% { transform: rotate(-4deg) translateY(-2px); }
+      50% { transform: rotate(4deg) translateY(-4px); }
+      80% { transform: rotate(-3deg) translateY(-1px); }
+    }
+
+    @keyframes stickRise {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      40% { transform: translateY(-0.6rem) rotate(-1.5deg); }
+      70% { transform: translateY(-0.2rem) rotate(1.5deg); }
+    }
+
+    @keyframes drawOrbPulse {
+      0%, 100% {
+        transform: scale(0.95);
+        opacity: 0.4;
+      }
+      50% {
+        transform: scale(1.08);
+        opacity: 0.85;
+      }
+    }
+
+    @keyframes numberFlicker {
+      0%, 100% {
+        opacity: 0.7;
+        filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.2));
+      }
+      50% {
+        opacity: 1;
+        filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.45));
+      }
+    }
+
+    @keyframes revealStickDrop {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -5rem) rotate(-10deg) scale(0.92);
+      }
+      22% {
+        opacity: 1;
+      }
+      68% {
+        opacity: 1;
+        transform: translate(-50%, 5.8rem) rotate(8deg) scale(1);
+      }
+      82% {
+        transform: translate(-50%, 4.9rem) rotate(-4deg) scale(1.01);
+      }
+      100% {
+        opacity: 1;
+        transform: translate(-50%, 5.3rem) rotate(0deg) scale(1);
+      }
+    }
+
+    @keyframes impactRing {
+      0% {
+        opacity: 0.45;
+        transform: translateX(-50%) scale(0.4);
+      }
+      100% {
+        opacity: 0;
+        transform: translateX(-50%) scale(1.6);
+      }
+    }
+
+    @keyframes jiaobeiSpinLeft {
+      0% { transform: translateY(0.4rem) rotate(-8deg); }
+      35% { transform: translateY(-2.5rem) rotate(180deg); }
+      70% { transform: translateY(-0.4rem) rotate(340deg); }
+      100% { transform: translateY(0) rotate(360deg); }
+    }
+
+    @keyframes jiaobeiSpinRight {
+      0% { transform: translateY(0.4rem) rotate(8deg); }
+      35% { transform: translateY(-2.5rem) rotate(-180deg); }
+      70% { transform: translateY(-0.4rem) rotate(-340deg); }
+      100% { transform: translateY(0) rotate(-360deg); }
+    }
+  </style>
+</head>
+<body class="overflow-x-hidden text-stone-100">
+  <div id="apiKeyModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm">
+    <div class="w-full max-w-lg rounded-[1.75rem] border border-amber-200/20 bg-stone-950/95 p-6 shadow-2xl shadow-black/40 sm:p-7">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-xs tracking-[0.35em] text-amber-200/75">GEMINI ACCESS</p>
+          <h2 class="mt-3 text-2xl font-semibold text-amber-50">請先輸入你的 Gemini API Key</h2>
+        </div>
+        <button
+          id="closeApiKeyModalButton"
+          type="button"
+          aria-label="稍後再填"
+          class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-stone-100/10 bg-stone-900/70 text-xl text-stone-300 transition hover:bg-stone-800/80"
+        >
+          ×
+        </button>
+      </div>
+
+      <p id="apiKeyModalHint" class="mt-4 text-sm leading-7 text-stone-300">
+        進入系統後若要使用 AI 解籤，請先貼上你自己的 Gemini API Key。系統預設只會暫存在這個瀏覽器分頁中。
+      </p>
+
+      <label for="apiKeyInput" class="mt-6 block text-sm font-medium text-amber-100">Gemini API Key</label>
+      <input
+        id="apiKeyInput"
+        type="password"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="請貼上 AIza 開頭的 Gemini API Key"
+        class="mt-3 min-h-14 w-full rounded-2xl border border-amber-100/15 bg-stone-900/80 px-4 py-4 text-base text-stone-100 placeholder:text-stone-500 focus:border-amber-300/50 focus:outline-none focus:ring-4 focus:ring-amber-300/20"
+      >
+      <p id="apiKeyModalStatus" class="mt-3 min-h-6 text-sm text-stone-400"></p>
+
+      <div class="mt-6 grid gap-3 sm:grid-cols-3">
+        <button
+          id="saveApiKeyButton"
+          type="button"
+          class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-amber-200/20 bg-gradient-to-r from-amber-400 to-orange-400 px-4 py-3 text-sm font-semibold text-stone-950 transition hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-amber-300/30"
+        >
+          儲存並開始
+        </button>
+        <button
+          id="clearApiKeyButton"
+          type="button"
+          class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-stone-100/15 bg-stone-800/80 px-4 py-3 text-sm font-semibold text-stone-100 transition hover:bg-stone-700/80 focus:outline-none focus:ring-4 focus:ring-stone-400/20"
+        >
+          清除此 Key
+        </button>
+        <button
+          id="skipApiKeyButton"
+          type="button"
+          class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-stone-100/15 bg-transparent px-4 py-3 text-sm font-semibold text-stone-300 transition hover:bg-stone-900/60 focus:outline-none focus:ring-4 focus:ring-stone-400/20"
+        >
+          稍後再填
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <main class="relative flex min-h-screen items-center justify-center px-4 py-8 sm:px-6">
+    <div class="pointer-events-none absolute inset-0">
+      <div class="absolute left-1/2 top-16 h-40 w-40 -translate-x-1/2 rounded-full bg-amber-400/10 blur-3xl"></div>
+      <div class="absolute bottom-10 left-8 h-32 w-32 rounded-full bg-fuchsia-500/10 blur-3xl"></div>
+      <div class="absolute right-10 top-1/3 h-36 w-36 rounded-full bg-orange-500/10 blur-3xl"></div>
+      <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/40 to-transparent"></div>
+      <div class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-200/20 to-transparent"></div>
+    </div>
+
+    <section class="relative z-10 w-full max-w-5xl">
+      <div class="mx-auto overflow-hidden rounded-[2rem] border border-amber-200/15 bg-black/35 shadow-2xl shadow-amber-950/30 backdrop-blur-xl">
+        <div class="border-b border-amber-100/10 px-5 py-4 text-center sm:px-8">
+          <p class="text-xs tracking-[0.45em] text-amber-200/80 sm:text-sm">AI DIVINATION SYSTEM</p>
+          <h1 class="mt-3 text-3xl font-semibold tracking-[0.25em] text-amber-50 sm:text-5xl">AI 靈籤預報系統</h1>
+          <p class="mt-4 text-sm leading-7 text-stone-300 sm:text-base">
+            靜心、專注、誠意一念。抽得一籤後，可再請 AI 大師結合詩文溫柔解讀。
+          </p>
+          <p id="convertStatus" class="mt-3 text-xs text-amber-200/80 sm:text-sm">
+            正在載入籤詩資料與繁體轉換功能...
+          </p>
+        </div>
+
+        <div class="px-5 py-8 sm:px-8 sm:py-10">
+          <div id="homeSection" class="flex min-h-[28rem] flex-col items-center justify-center text-center">
+            <div class="mystic-glow mb-8 flex h-28 w-28 items-center justify-center rounded-full border border-amber-300/30 bg-amber-400/10 text-4xl shadow-lg shadow-amber-500/10 sm:h-32 sm:w-32">
+              籤
+            </div>
+            <h2 class="text-2xl font-semibold tracking-[0.2em] text-amber-50 sm:text-4xl">誠心請示，靜候天意</h2>
+            <p class="mt-4 max-w-2xl text-sm leading-7 text-stone-300 sm:text-base">
+              點擊下方按鈕，系統將隨機為你抽出一支籤，並顯示籤詩與解意。
+            </p>
+            <button
+              id="drawButton"
+              type="button"
+              aria-label="誠心求籤"
+              class="mt-8 inline-flex min-h-16 w-full max-w-xs items-center justify-center rounded-full border border-amber-200/30 bg-gradient-to-r from-amber-500 to-orange-500 px-8 py-4 text-lg font-semibold text-stone-950 shadow-xl shadow-amber-500/20 transition hover:scale-[1.02] hover:shadow-amber-500/35 focus:outline-none focus:ring-4 focus:ring-amber-300/40 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-20 sm:text-2xl"
+            >
+              誠心求籤
+            </button>
+            <p id="dataStatus" class="mt-4 text-sm text-stone-400">籤詩資料載入中...</p>
+          </div>
+
+          <div id="jiabeiSection" class="hidden min-h-[28rem] flex-col items-center justify-center text-center">
+            <div class="rounded-[1.75rem] border border-amber-200/15 bg-white/5 px-5 py-6 shadow-lg shadow-black/20 sm:px-8">
+              <p class="text-xs tracking-[0.35em] text-amber-200/75">DIVINATION APPROVAL</p>
+              <h2 class="mt-4 text-2xl font-semibold tracking-[0.2em] text-amber-50 sm:text-3xl">請先擲筊請示</h2>
+              <p id="jiabeiRoundLabel" class="mt-4 text-sm tracking-[0.28em] text-amber-100/85">第 1 / 3 次擲筊</p>
+
+              <div class="mt-8 flex items-end justify-center gap-6 sm:gap-10">
+                <div id="jiaobeiLeft" class="jiaobei-shell result-up-left"></div>
+                <div id="jiaobeiRight" class="jiaobei-shell result-down-right"></div>
+              </div>
+
+              <p id="jiabeiStatus" class="mt-8 text-2xl font-semibold text-amber-50 sm:text-3xl">正在請示神明是否賜筊...</p>
+              <p id="jiabeiHint" class="mt-4 max-w-xl text-sm leading-7 text-stone-300 sm:text-base">
+                須連續獲得三次聖筊，才會進入正式求籤流程；若中途未獲應允，將回到首頁重新請示。
+              </p>
+
+              <div id="jiabeiHistory" class="mt-6 flex flex-wrap items-center justify-center gap-3"></div>
+            </div>
+          </div>
+
+          <div id="loadingSection" class="hidden min-h-[28rem] flex-col items-center justify-center text-center">
+            <div class="relative flex flex-col items-center">
+              <div class="draw-orb absolute top-4 h-28 w-28 rounded-full bg-amber-300/18 blur-3xl"></div>
+              <div id="drawRevealStick" class="draw-reveal-stick">
+                <span id="drawRevealStickLabel" class="draw-reveal-stick-label">天意</span>
+              </div>
+              <div id="drawImpactRing" class="draw-impact-ring"></div>
+              <div id="fortuneVessel" class="fortune-vessel relative flex h-56 w-40 items-end justify-center overflow-hidden rounded-[2.75rem] border border-amber-200/25 bg-gradient-to-b from-amber-100/15 via-orange-400/10 to-stone-900/70 shadow-2xl shadow-amber-500/10">
+                <div class="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-stone-950/65 to-transparent"></div>
+                <div class="absolute inset-x-4 top-5 h-px bg-gradient-to-r from-transparent via-amber-100/40 to-transparent"></div>
+                <div id="fortuneSticks" class="absolute inset-x-0 bottom-9 flex items-end justify-center gap-3">
+                  <span class="fortune-stick h-28"></span>
+                  <span class="fortune-stick h-32"></span>
+                  <span class="fortune-stick h-36"></span>
+                  <span class="fortune-stick h-[7.75rem]"></span>
+                  <span class="fortune-stick h-[6.75rem]"></span>
+                </div>
+                <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-amber-100/25 bg-black/20 text-2xl font-semibold text-amber-50">
+                  籤
+                </div>
+              </div>
+            </div>
+            <p class="mt-8 text-2xl font-semibold tracking-[0.2em] text-amber-50 sm:text-3xl">正在向神明祈求...</p>
+            <p id="drawPreviewNumber" class="draw-preview-digit mt-4 text-4xl font-semibold tracking-[0.2em] text-amber-200 sm:text-5xl">第 00 籤</p>
+            <p id="drawPreviewLine" class="mt-4 text-sm leading-7 text-stone-300 sm:text-base">請保持心念專一，籤筒正在微微晃動，為你請示今日籤意。</p>
+          </div>
+
+          <div id="resultSection" class="hidden">
+            <div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+              <div class="rounded-[1.75rem] border border-amber-200/15 bg-white/5 p-5 shadow-lg shadow-black/20 sm:p-6">
+                <div class="flex flex-wrap items-center gap-3">
+                  <span id="chimNumberBadge" class="inline-flex rounded-full border border-amber-200/20 bg-amber-300/10 px-4 py-2 text-sm font-medium text-amber-100"></span>
+                  <span id="chimFortuneBadge" class="inline-flex rounded-full border border-fuchsia-200/15 bg-fuchsia-300/10 px-4 py-2 text-sm font-medium text-fuchsia-100"></span>
+                </div>
+
+                <h2 id="chimTitle" class="mt-5 text-2xl font-semibold leading-relaxed text-amber-50 sm:text-3xl"></h2>
+                <p id="chimMeta" class="mt-3 text-sm leading-7 text-stone-300"></p>
+
+                <div class="mt-6 rounded-[1.5rem] border border-amber-100/10 bg-stone-950/35 p-4 sm:p-6">
+                  <p class="text-sm tracking-[0.3em] text-amber-200/75">四句詩文</p>
+                  <div class="mt-5 overflow-x-auto">
+                    <div id="poemLines" class="flex min-h-[17rem] min-w-max gap-4 pr-2 sm:gap-6"></div>
+                  </div>
+                </div>
+
+                <div class="mt-6 rounded-[1.5rem] border border-amber-100/10 bg-stone-950/35 p-4 sm:p-6">
+                  <p class="text-sm tracking-[0.3em] text-amber-200/75">解曰 / 含義</p>
+                  <div class="mt-4 space-y-4">
+                    <div>
+                      <p class="text-sm font-medium text-amber-100">解曰</p>
+                      <p id="chimMeaning" class="mt-2 text-sm leading-7 text-stone-200 sm:text-base"></p>
+                    </div>
+                    <div>
+                      <p class="text-sm font-medium text-amber-100">含義</p>
+                      <p id="chimInterpretation" class="mt-2 text-sm leading-7 text-stone-300 sm:text-base"></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rounded-[1.75rem] border border-amber-200/15 bg-white/5 p-5 shadow-lg shadow-black/20 sm:p-6">
+                <h3 class="text-xl font-semibold text-amber-50 sm:text-2xl">AI 解籤</h3>
+                <p class="mt-3 text-sm leading-7 text-stone-300 sm:text-base">
+                  輸入你想請教神明的具體事項，AI 會依據你抽到的籤詩，給出 80 到 100 字的溫暖建議。
+                </p>
+
+                <label for="userQuestion" class="mt-6 block text-sm font-medium text-amber-100">輸入您想請教神明的具體事項</label>
+                <input
+                  id="userQuestion"
+                  type="text"
+                  aria-label="輸入您想請教神明的具體事項"
+                  placeholder="例如：轉職、感情、合作、是否該換工作"
+                  class="mt-3 min-h-14 w-full rounded-2xl border border-amber-100/15 bg-stone-900/80 px-4 py-4 text-base text-stone-100 placeholder:text-stone-500 focus:border-amber-300/50 focus:outline-none focus:ring-4 focus:ring-amber-300/20"
+                >
+
+                <div class="mt-4 rounded-[1.5rem] border border-amber-100/10 bg-stone-950/35 p-4 sm:p-5">
+                  <div class="flex items-center justify-between gap-3">
+                    <p class="text-sm font-medium text-amber-100">解籤角色</p>
+                    <span id="selectedPersonaName" class="inline-flex rounded-full border border-amber-200/20 bg-amber-300/10 px-3 py-1 text-xs text-amber-50">廟公</span>
+                  </div>
+                  <div id="personaSelector" class="mt-3 flex flex-wrap gap-3">
+                    <button type="button" data-persona-id="templeKeeper" class="persona-chip is-active inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium">廟公</button>
+                    <button type="button" data-persona-id="gentleSister" class="persona-chip inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium">知性姊姊</button>
+                    <button type="button" data-persona-id="strategist" class="persona-chip inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium">軍師</button>
+                    <button type="button" data-persona-id="bestie" class="persona-chip inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium">直白好友</button>
+                  </div>
+                  <p id="personaDescription" class="mt-3 text-sm leading-7 text-stone-300">
+                    語氣沉穩、樸實，像廟裡長輩慢慢點醒你。送出問題時，系統也會把這個角色一起帶進解籤提示。
+                  </p>
+                </div>
+
+                <div class="mt-6 rounded-[1.5rem] border border-amber-100/10 bg-stone-950/35 p-4 sm:p-5">
+                  <p class="text-sm font-medium text-amber-100">安全模式</p>
+                  <p id="apiKeyStatus" class="mt-2 text-sm leading-7 text-stone-300">
+                    尚未輸入 Gemini API Key。第一次進站時會跳出視窗要求輸入，預設只暫存在目前分頁。
+                  </p>
+                  <button
+                    id="changeApiKeyButton"
+                    type="button"
+                    class="mt-4 inline-flex min-h-11 items-center justify-center rounded-2xl border border-stone-100/15 bg-stone-800/80 px-4 py-3 text-sm font-semibold text-stone-100 transition hover:bg-stone-700/80 focus:outline-none focus:ring-4 focus:ring-stone-400/20"
+                  >
+                    輸入 / 更換 API Key
+                  </button>
+                </div>
+
+                <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                  <button
+                    id="aiButton"
+                    type="button"
+                    aria-label="請大師指點"
+                    class="inline-flex min-h-14 items-center justify-center rounded-2xl border border-amber-200/20 bg-gradient-to-r from-amber-400 to-orange-400 px-5 py-4 text-base font-semibold text-stone-950 transition hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-amber-300/30"
+                  >
+                    請大師指點
+                  </button>
+                  <button
+                    id="redrawButton"
+                    type="button"
+                    aria-label="再抽一支"
+                    class="inline-flex min-h-14 items-center justify-center rounded-2xl border border-stone-100/15 bg-stone-800/80 px-5 py-4 text-base font-semibold text-stone-100 transition hover:bg-stone-700/80 focus:outline-none focus:ring-4 focus:ring-stone-400/20"
+                  >
+                    再抽一支
+                  </button>
+                </div>
+
+                <div class="mt-6 rounded-[1.5rem] border border-amber-100/10 bg-stone-950/35 p-4 sm:p-5">
+                  <div class="flex items-center justify-between gap-3">
+                    <p class="text-sm tracking-[0.3em] text-amber-200/75">AI 回覆</p>
+                    <span id="aiStatus" class="text-xs text-stone-400">尚未請求</span>
+                  </div>
+                  <div id="aiResult" style="scrollbar-gutter: stable;" class="mt-3 h-64 overflow-y-scroll whitespace-pre-wrap rounded-2xl border border-stone-100/10 bg-black/20 p-4 text-sm leading-7 text-stone-200 sm:text-base">
+                    抽到籤後，輸入你的問題，再按「請大師指點」。
+                  </div>
+                </div>
+
+                <div id="promptPreviewWrapper" class="mt-4 hidden rounded-[1.5rem] border border-stone-100/10 bg-stone-950/35 p-4">
+                  <p class="text-sm font-medium text-amber-100">目前將送出的 Prompt 預覽</p>
+                  <pre id="promptPreview" class="mt-3 overflow-x-auto whitespace-pre-wrap break-words text-xs leading-6 text-stone-300"></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const DATA_URL = "https://gist.githubusercontent.com/monsterxcn/47681a6db630887d69946cc7f0faa0e6/raw/666f299fe5e80447d63bc125587bc0df9053614b/chims.chs.json";
+    const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-flash-latest"];
+    const GEMINI_MODEL = GEMINI_MODELS[0];
+    const GEMINI_API_VERSION = "v1";
+    const GEMINI_PROXY_URL = "/api/gemini";
+    const GEMINI_API_KEY_STORAGE_KEY = "ai-ling-qian-gemini-api-key";
+    const AI_PRIMARY_MAX_TOKENS = 1536;
+    const AI_RETRY_MAX_TOKENS = 2048;
+    const COMPLETE_SENTENCE_ENDINGS = /[。！？!?”」』）)\]]\s*$/;
+
+    let chimData = [];
+    let currentChim = null;
+    let convertModeText = "使用簡易繁體轉換，少量詞句可能仍為簡體。";
+    let openCCConverter = null;
+    let drawAnimationInterval = null;
+    let drawResultTimeout = null;
+    let drawRevealTimeout = null;
+    let jiabeiStepTimeout = null;
+    let selectedPersonaId = "templeKeeper";
+    let consecutiveJiabeiFailures = 0;
+    let inMemoryGeminiApiKey = "";
+    const JIAOBEI_REQUIRED_SUCCESSES = 3;
+    const JIAOBEI_FAILURE_BYPASS_THRESHOLD = 3;
+    const JIAOBEI_TOSS_DURATION = 1150;
+    const JIAOBEI_NEXT_DELAY = 950;
+    const JIAOBEI_RETURN_DELAY = 1800;
+    const DRAW_SHAKE_DURATION = 3600;
+    const DRAW_DROP_REVEAL_DURATION = 1400;
+    const DRAW_ANIMATION_DURATION = DRAW_SHAKE_DURATION + DRAW_DROP_REVEAL_DURATION;
+    const DRAW_ANIMATION_MESSAGES = [
+      "請保持心念專一，籤筒正在微微晃動，為你請示今日籤意。",
+      "神意流轉之中，讓心沉靜下來，等待屬於你的指引。",
+      "籤枝翻動未定，片刻之後，答案將逐漸浮現。",
+      "誠心已達，正在為你抽出最契合當下的一支靈籤。"
+    ];
+    const PERSONA_OPTIONS = {
+      templeKeeper: {
+        label: "廟公",
+        description: "語氣沉穩、樸實，像廟裡長輩慢慢點醒你。",
+        placeholder: "例如：廟公伯，這份工作我還適合繼續做嗎？",
+        rolePrompt: "你是一位在廟口替人解籤多年的廟公。",
+        tonePrompt: "語氣穩重、樸實、溫厚，像在廟埕耐心指點迷津。",
+        framedQuestion: (questionText) => `若由廟公替我看這支籤，我想請教：${questionText}`
+      },
+      gentleSister: {
+        label: "知性姊姊",
+        description: "語氣溫柔、知性、安定，像成熟姐姐耐心安慰你。",
+        placeholder: "例如：姊姊，我最近這段感情還值得繼續嗎？",
+        rolePrompt: "你是一位溫柔、知性、很會安定人心的姊姊型解籤老師。",
+        tonePrompt: "語氣柔和、細膩、帶鼓勵感，但不要過度浮誇。",
+        framedQuestion: (questionText) => `如果由一位溫柔知性的姊姊替我解籤，我想請教：${questionText}`
+      },
+      strategist: {
+        label: "軍師",
+        description: "語氣冷靜、清晰、偏策略思考，適合工作與決策問題。",
+        placeholder: "例如：軍師，這次轉職是不是該先觀望一陣子？",
+        rolePrompt: "你是一位冷靜理性、擅長判斷局勢的軍師型解籤老師。",
+        tonePrompt: "語氣沉著清楚，提供方向與步驟感，避免空泛安慰。",
+        framedQuestion: (questionText) => `若由軍師角度來看這支籤，我想請教：${questionText}`
+      },
+      bestie: {
+        label: "直白好友",
+        description: "語氣親近、白話、直接，但仍保留善意與分寸。",
+        placeholder: "例如：好友，你覺得我現在到底該不該換工作？",
+        rolePrompt: "你是一位真誠、白話、會直接提醒重點的好友型解籤老師。",
+        tonePrompt: "語氣自然口語、親切直接，但不要尖酸或失禮。",
+        framedQuestion: (questionText) => `如果由一位直白但真心替我著想的好友來解籤，我想問：${questionText}`
+      }
+    };
+    const KNOWN_TEXT_REPAIRS = [
+      ["展??愁眉", "展愁眉"],
+      ["朱衣??临日月", "朱衣临日月"],
+      ["云便??兴", "云便兴"],
+      ["宾主一德??", "宾主一德"]
+    ];
+    const JIAOBEI_RESULTS = {
+      sheng: {
+        label: "聖筊",
+        statusText: "神明應允，得一聖筊。",
+        hintText: "氣息已通，請再擲筊確認是否連續獲得允筊。",
+        leftClass: "result-up-left",
+        rightClass: "result-down-right",
+        isSuccess: true
+      },
+      xiao: {
+        label: "笑筊",
+        statusText: "本次為笑筊，神明似乎覺得時機未定。",
+        hintText: "未能連續三次獲得聖筊，本輪請示結束，稍後回到首頁。",
+        leftClass: "result-laugh-left",
+        rightClass: "result-laugh-right",
+        isSuccess: false
+      },
+      yin: {
+        label: "陰筊",
+        statusText: "本次為陰筊，神明尚未應允此刻求籤。",
+        hintText: "未能連續三次獲得聖筊，本輪請示結束，稍後回到首頁。",
+        leftClass: "result-lose-left",
+        rightClass: "result-lose-right",
+        isSuccess: false
+      }
+    };
+
+    const fallbackMap = {
+      "签": "籤",
+      "诗": "詩",
+      "庙": "廟",
+      "龙": "龍",
+      "凤": "鳳",
+      "马": "馬",
+      "门": "門",
+      "风": "風",
+      "气": "氣",
+      "云": "雲",
+      "万": "萬",
+      "东": "東",
+      "乐": "樂",
+      "业": "業",
+      "丽": "麗",
+      "举": "舉",
+      "义": "義",
+      "乌": "烏",
+      "习": "習",
+      "乡": "鄉",
+      "书": "書",
+      "买": "買",
+      "乱": "亂",
+      "争": "爭",
+      "于": "於",
+      "亏": "虧",
+      "亚": "亞",
+      "亩": "畝",
+      "亲": "親",
+      "亿": "億",
+      "仅": "僅",
+      "从": "從",
+      "仑": "侖",
+      "仓": "倉",
+      "仪": "儀",
+      "们": "們",
+      "优": "優",
+      "会": "會",
+      "伞": "傘",
+      "伟": "偉",
+      "传": "傳",
+      "伤": "傷",
+      "伦": "倫",
+      "伪": "偽",
+      "体": "體",
+      "余": "餘",
+      "佛": "佛",
+      "侠": "俠",
+      "侣": "侶",
+      "侥": "僥",
+      "侧": "側",
+      "侦": "偵",
+      "侨": "僑",
+      "俩": "倆",
+      "俭": "儉",
+      "债": "債",
+      "倾": "傾",
+      "儿": "兒",
+      "兑": "兌",
+      "兰": "蘭",
+      "关": "關",
+      "兴": "興",
+      "养": "養",
+      "兽": "獸",
+      "内": "內",
+      "冈": "岡",
+      "写": "寫",
+      "军": "軍",
+      "农": "農",
+      "决": "決",
+      "况": "況",
+      "冻": "凍",
+      "净": "淨",
+      "凉": "涼",
+      "几": "幾",
+      "击": "擊",
+      "则": "則",
+      "刚": "剛",
+      "创": "創",
+      "刘": "劉",
+      "别": "別",
+      "删": "刪",
+      "则": "則",
+      "刹": "剎",
+      "剂": "劑",
+      "剑": "劍",
+      "剧": "劇",
+      "劝": "勸",
+      "办": "辦",
+      "动": "動",
+      "务": "務",
+      "势": "勢",
+      "励": "勵",
+      "劳": "勞",
+      "胜": "勝",
+      "华": "華",
+      "协": "協",
+      "单": "單",
+      "卖": "賣",
+      "卢": "盧",
+      "卫": "衛",
+      "却": "卻",
+      "厅": "廳",
+      "历": "歷",
+      "厉": "厲",
+      "压": "壓",
+      "厌": "厭",
+      "县": "縣",
+      "叁": "參",
+      "双": "雙",
+      "发": "發",
+      "变": "變",
+      "叙": "敘",
+      "叶": "葉",
+      "号": "號",
+      "叹": "嘆",
+      "叽": "嘰",
+      "后": "後",
+      "向": "向",
+      "吕": "呂",
+      "吗": "嗎",
+      "启": "啟",
+      "听": "聽",
+      "吴": "吳",
+      "呜": "嗚",
+      "员": "員",
+      "呛": "嗆",
+      "呜": "嗚",
+      "咏": "詠",
+      "咸": "咸",
+      "响": "響",
+      "哗": "嘩",
+      "唤": "喚",
+      "问": "問",
+      "啰": "囉",
+      "啸": "嘯",
+      "喷": "噴",
+      "嘱": "囑",
+      "嚣": "囂",
+      "团": "團",
+      "园": "園",
+      "国": "國",
+      "图": "圖",
+      "圆": "圓",
+      "圣": "聖",
+      "场": "場",
+      "坏": "壞",
+      "块": "塊",
+      "坚": "堅",
+      "坛": "壇",
+      "坝": "壩",
+      "坟": "墳",
+      "坠": "墜",
+      "垄": "壟",
+      "垒": "壘",
+      "垦": "墾",
+      "复": "復",
+      "够": "夠",
+      "梦": "夢",
+      "头": "頭",
+      "夺": "奪",
+      "奋": "奮",
+      "妆": "妝",
+      "妇": "婦",
+      "妈": "媽",
+      "妒": "妒",
+      "娇": "嬌",
+      "娱": "娛",
+      "娄": "婁",
+      "孙": "孫",
+      "学": "學",
+      "宁": "寧",
+      "宝": "寶",
+      "实": "實",
+      "审": "審",
+      "宫": "宮",
+      "宾": "賓",
+      "对": "對",
+      "寻": "尋",
+      "导": "導",
+      "寿": "壽",
+      "将": "將",
+      "尔": "爾",
+      "尝": "嘗",
+      "层": "層",
+      "岂": "豈",
+      "岁": "歲",
+      "岚": "嵐",
+      "岛": "島",
+      "岭": "嶺",
+      "峡": "峽",
+      "帐": "帳",
+      "带": "帶",
+      "帮": "幫",
+      "庄": "莊",
+      "庆": "慶",
+      "库": "庫",
+      "应": "應",
+      "庐": "廬",
+      "庙": "廟",
+      "开": "開",
+      "异": "異",
+      "弃": "棄",
+      "张": "張",
+      "弥": "彌",
+      "弯": "彎",
+      "归": "歸",
+      "当": "當",
+      "录": "錄",
+      "彻": "徹",
+      "征": "徵",
+      "径": "徑",
+      "御": "禦",
+      "忆": "憶",
+      "忏": "懺",
+      "忧": "憂",
+      "怀": "懷",
+      "态": "態",
+      "怜": "憐",
+      "总": "總",
+      "恋": "戀",
+      "恒": "恆",
+      "恶": "惡",
+      "恼": "惱",
+      "惊": "驚",
+      "惧": "懼",
+      "惨": "慘",
+      "惩": "懲",
+      "愈": "癒",
+      "愿": "願",
+      "战": "戰",
+      "戏": "戲",
+      "户": "戶",
+      "扑": "撲",
+      "执": "執",
+      "扩": "擴",
+      "扫": "掃",
+      "扬": "揚",
+      "扰": "擾",
+      "抚": "撫",
+      "抛": "拋",
+      "抟": "摶",
+      "抠": "摳",
+      "抢": "搶",
+      "护": "護",
+      "报": "報",
+      "拟": "擬",
+      "拢": "攏",
+      "择": "擇",
+      "挂": "掛",
+      "挚": "摯",
+      "挠": "撓",
+      "挡": "擋",
+      "挣": "掙",
+      "挥": "揮",
+      "挟": "挾",
+      "损": "損",
+      "换": "換",
+      "捣": "搗",
+      "据": "據",
+      "掳": "擄",
+      "掷": "擲",
+      "掸": "撣",
+      "掺": "摻",
+      "揽": "攬",
+      "搁": "擱",
+      "搂": "摟",
+      "搅": "攪",
+      "搜": "搜",
+      "携": "攜",
+      "摄": "攝",
+      "摆": "擺",
+      "摇": "搖",
+      "摊": "攤",
+      "撑": "撐",
+      "敌": "敵",
+      "数": "數",
+      "斋": "齋",
+      "断": "斷",
+      "无": "無",
+      "旧": "舊",
+      "时": "時",
+      "昼": "晝",
+      "晋": "晉",
+      "显": "顯",
+      "晓": "曉",
+      "暂": "暫",
+      "术": "術",
+      "杀": "殺",
+      "杂": "雜",
+      "权": "權",
+      "条": "條",
+      "来": "來",
+      "杨": "楊",
+      "极": "極",
+      "构": "構",
+      "枪": "槍",
+      "柜": "櫃",
+      "标": "標",
+      "栋": "棟",
+      "栏": "欄",
+      "树": "樹",
+      "样": "樣",
+      "梦": "夢",
+      "欢": "歡",
+      "岁": "歲",
+      "毕": "畢",
+      "气": "氣",
+      "汉": "漢",
+      "汤": "湯",
+      "沟": "溝",
+      "没": "沒",
+      "泪": "淚",
+      "洁": "潔",
+      "浅": "淺",
+      "涛": "濤",
+      "润": "潤",
+      "涨": "漲",
+      "湾": "灣",
+      "灭": "滅",
+      "灯": "燈",
+      "灵": "靈",
+      "灾": "災",
+      "炽": "熾",
+      "点": "點",
+      "炼": "煉",
+      "烛": "燭",
+      "烟": "煙",
+      "烦": "煩",
+      "热": "熱",
+      "爱": "愛",
+      "爷": "爺",
+      "牵": "牽",
+      "犹": "猶",
+      "状": "狀",
+      "独": "獨",
+      "狭": "狹",
+      "猎": "獵",
+      "猪": "豬",
+      "猫": "貓",
+      "献": "獻",
+      "现": "現",
+      "环": "環",
+      "珑": "瓏",
+      "产": "產",
+      "亩": "畝",
+      "电": "電",
+      "画": "畫",
+      "畅": "暢",
+      "疗": "療",
+      "疮": "瘡",
+      "疯": "瘋",
+      "皱": "皺",
+      "盘": "盤",
+      "盗": "盜",
+      "盖": "蓋",
+      "着": "著",
+      "矫": "矯",
+      "矿": "礦",
+      "码": "碼",
+      "砖": "磚",
+      "礼": "禮",
+      "祸": "禍",
+      "禀": "稟",
+      "离": "離",
+      "秃": "禿",
+      "积": "積",
+      "称": "稱",
+      "稳": "穩",
+      "穷": "窮",
+      "窃": "竊",
+      "竞": "競",
+      "笔": "筆",
+      "筑": "築",
+      "简": "簡",
+      "粮": "糧",
+      "红": "紅",
+      "级": "級",
+      "纪": "紀",
+      "纣": "紂",
+      "约": "約",
+      "纯": "純",
+      "纲": "綱",
+      "纳": "納",
+      "纷": "紛",
+      "纸": "紙",
+      "纹": "紋",
+      "纺": "紡",
+      "纽": "紐",
+      "线": "線",
+      "练": "練",
+      "组": "組",
+      "细": "細",
+      "织": "織",
+      "终": "終",
+      "绍": "紹",
+      "经": "經",
+      "绑": "綁",
+      "结": "結",
+      "绕": "繞",
+      "绘": "繪",
+      "给": "給",
+      "络": "絡",
+      "绝": "絕",
+      "统": "統",
+      "继": "繼",
+      "续": "續",
+      "绿": "綠",
+      "缘": "緣",
+      "编": "編",
+      "缩": "縮",
+      "罢": "罷",
+      "网": "網",
+      "罗": "羅",
+      "罚": "罰",
+      "职": "職",
+      "联": "聯",
+      "闻": "聞",
+      "聪": "聰",
+      "肃": "肅",
+      "肠": "腸",
+      "肤": "膚",
+      "肥": "肥",
+      "胆": "膽",
+      "胜": "勝",
+      "脉": "脈",
+      "脑": "腦",
+      "脚": "腳",
+      "脱": "脫",
+      "脸": "臉",
+      "腊": "臘",
+      "腾": "騰",
+      "舆": "輿",
+      "艳": "艷",
+      "艺": "藝",
+      "节": "節",
+      "芦": "蘆",
+      "苹": "蘋",
+      "范": "範",
+      "茧": "繭",
+      "荐": "薦",
+      "荡": "蕩",
+      "荣": "榮",
+      "药": "藥",
+      "获": "獲",
+      "莹": "瑩",
+      "萧": "蕭",
+      "萨": "薩",
+      "蓝": "藍",
+      "藏": "藏",
+      "虚": "虛",
+      "虫": "蟲",
+      "虽": "雖",
+      "蚀": "蝕",
+      "蛮": "蠻",
+      "补": "補",
+      "装": "裝",
+      "裤": "褲",
+      "袭": "襲",
+      "见": "見",
+      "观": "觀",
+      "规": "規",
+      "视": "視",
+      "览": "覽",
+      "觉": "覺",
+      "触": "觸",
+      "誉": "譽",
+      "计": "計",
+      "订": "訂",
+      "认": "認",
+      "讨": "討",
+      "让": "讓",
+      "训": "訓",
+      "议": "議",
+      "讯": "訊",
+      "记": "記",
+      "讲": "講",
+      "许": "許",
+      "论": "論",
+      "设": "設",
+      "访": "訪",
+      "证": "證",
+      "评": "評",
+      "识": "識",
+      "诉": "訴",
+      "诊": "診",
+      "词": "詞",
+      "试": "試",
+      "诗": "詩",
+      "诚": "誠",
+      "话": "話",
+      "该": "該",
+      "详": "詳",
+      "诞": "誕",
+      "诱": "誘",
+      "说": "說",
+      "请": "請",
+      "诸": "諸",
+      "诺": "諾",
+      "谋": "謀",
+      "谢": "謝",
+      "谣": "謠",
+      "谦": "謙",
+      "谨": "謹",
+      "谱": "譜",
+      "谷": "谷",
+      "贝": "貝",
+      "财": "財",
+      "责": "責",
+      "贤": "賢",
+      "败": "敗",
+      "账": "帳",
+      "货": "貨",
+      "质": "質",
+      "贩": "販",
+      "贫": "貧",
+      "贬": "貶",
+      "购": "購",
+      "贯": "貫",
+      "贺": "賀",
+      "费": "費",
+      "贵": "貴",
+      "贷": "貸",
+      "贸": "貿",
+      "贼": "賊",
+      "赏": "賞",
+      "赐": "賜",
+      "赔": "賠",
+      "赖": "賴",
+      "赚": "賺",
+      "赛": "賽",
+      "赞": "讚",
+      "赵": "趙",
+      "赶": "趕",
+      "趋": "趨",
+      "跃": "躍",
+      "车": "車",
+      "轨": "軌",
+      "轩": "軒",
+      "转": "轉",
+      "轮": "輪",
+      "软": "軟",
+      "轰": "轟",
+      "较": "較",
+      "辅": "輔",
+      "辆": "輛",
+      "辈": "輩",
+      "辉": "輝",
+      "辟": "闢",
+      "边": "邊",
+      "辽": "遼",
+      "达": "達",
+      "迁": "遷",
+      "过": "過",
+      "迈": "邁",
+      "还": "還",
+      "这": "這",
+      "进": "進",
+      "远": "遠",
+      "违": "違",
+      "连": "連",
+      "迟": "遲",
+      "迹": "跡",
+      "适": "適",
+      "选": "選",
+      "逊": "遜",
+      "递": "遞",
+      "遗": "遺",
+      "遥": "遙",
+      "郁": "鬱",
+      "郑": "鄭",
+      "邻": "鄰",
+      "酝": "醞",
+      "酱": "醬",
+      "酿": "釀",
+      "释": "釋",
+      "里": "裡",
+      "鉴": "鑑",
+      "针": "針",
+      "钉": "釘",
+      "钩": "鉤",
+      "钱": "錢",
+      "钳": "鉗",
+      "铁": "鐵",
+      "铃": "鈴",
+      "铜": "銅",
+      "铠": "鎧",
+      "铭": "銘",
+      "银": "銀",
+      "销": "銷",
+      "锁": "鎖",
+      "锅": "鍋",
+      "锈": "鏽",
+      "锋": "鋒",
+      "锤": "錘",
+      "锦": "錦",
+      "键": "鍵",
+      "镇": "鎮",
+      "镜": "鏡",
+      "长": "長",
+      "门": "門",
+      "闪": "閃",
+      "闭": "閉",
+      "问": "問",
+      "闯": "闖",
+      "闻": "聞",
+      "闲": "閒",
+      "间": "間",
+      "闷": "悶",
+      "阐": "闡",
+      "队": "隊",
+      "阶": "階",
+      "际": "際",
+      "陆": "陸",
+      "陈": "陳",
+      "阴": "陰",
+      "阳": "陽",
+      "险": "險",
+      "随": "隨",
+      "隐": "隱",
+      "难": "難",
+      "雁": "雁",
+      "雾": "霧",
+      "霁": "霽",
+      "静": "靜",
+      "顶": "頂",
+      "顺": "順",
+      "顾": "顧",
+      "顿": "頓",
+      "领": "領",
+      "颇": "頗",
+      "频": "頻",
+      "题": "題",
+      "颜": "顏",
+      "额": "額",
+      "风": "風",
+      "飞": "飛",
+      "饥": "飢",
+      "饭": "飯",
+      "饮": "飲",
+      "饰": "飾",
+      "饱": "飽",
+      "饼": "餅",
+      "馆": "館",
+      "馈": "饋",
+      "马": "馬",
+      "驭": "馭",
+      "驾": "駕",
+      "驻": "駐",
+      "驼": "駝",
+      "骄": "驕",
+      "验": "驗",
+      "骑": "騎",
+      "骗": "騙",
+      "骚": "騷",
+      "骤": "驟",
+      "鱼": "魚",
+      "鲜": "鮮",
+      "鸟": "鳥",
+      "鸡": "雞",
+      "鸣": "鳴",
+      "鸿": "鴻",
+      "鹂": "鸝",
+      "鹰": "鷹",
+      "麦": "麥",
+      "黄": "黃",
+      "点": "點",
+      "齐": "齊",
+      "齿": "齒",
+      "龙": "龍",
+      "龟": "龜"
+    };
+
+    const tryInitOpenCC = () => {
+      try {
+        if (window.OpenCC && typeof window.OpenCC.Converter === "function") {
+          openCCConverter = window.OpenCC.Converter({ from: "cn", to: "tw" });
+          convertModeText = "";
+        }
+      } catch (error) {
+        openCCConverter = null;
+      }
+    };
+
+    const repairKnownTextIssues = (inputText) => {
+      let repairedText = String(inputText || "");
+
+      for (const [brokenText, fixedText] of KNOWN_TEXT_REPAIRS) {
+        repairedText = repairedText.replaceAll(brokenText, fixedText);
+      }
+
+      return repairedText;
+    };
+
+    const convertWithFallback = (inputText) => {
+      if (!inputText) {
+        return "";
+      }
+
+      return repairKnownTextIssues(inputText).replace(/[\u4e00-\u9fff]/g, (char) => fallbackMap[char] || char);
+    };
+
+    const safeConvert = (inputText) => {
+      if (!inputText) {
+        return "";
+      }
+
+      const repairedInputText = repairKnownTextIssues(inputText);
+
+      if (openCCConverter) {
+        try {
+          return openCCConverter(repairedInputText);
+        } catch (error) {
+          return convertWithFallback(repairedInputText);
+        }
+      }
+
+      return convertWithFallback(repairedInputText);
+    };
+
+    const splitPoemIntoLines = (poemText) => {
+      const normalizedText = safeConvert(poemText || "")
+        .replace(/\r?\n/g, "，")
+        .replace(/[。！？；;：]/g, "，")
+        .replace(/\s+/g, "");
+
+      const poemLines = normalizedText
+        .split(/[，、]/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      if (poemLines.length >= 4) {
+        return poemLines.slice(0, 4);
+      }
+
+      if (poemLines.length > 0) {
+        return poemLines;
+      }
+
+      return ["暫無詩文"];
+    };
+
+    const normalizeChim = (chimItem, index) => {
+      const number = chimItem.number || chimItem.no || index + 1;
+      const fortune = safeConvert(chimItem.fortune || "未註明吉凶");
+      const trigram = safeConvert(chimItem.trigram || "");
+      const poem = safeConvert(chimItem.poem || "");
+      const shortMeaningParts = [chimItem.intpn_1, chimItem.intpn_2]
+        .filter(Boolean)
+        .map((item) => safeConvert(item));
+      const meaning = shortMeaningParts.length > 0 ? shortMeaningParts.join(" ") : "暫無解曰資料。";
+      const interpretation = safeConvert(chimItem.interpretation || "暫無含義資料。");
+
+      return {
+        number,
+        title: `第 ${number} 籤`,
+        fortune,
+        trigram,
+        poem,
+        poemLines: splitPoemIntoLines(poem),
+        meaning,
+        interpretation
+      };
+    };
+
+    const setSectionState = (stateName) => {
+      $("#homeSection").toggleClass("hidden", stateName !== "home");
+      $("#homeSection").toggleClass("flex", stateName === "home");
+      $("#jiabeiSection").toggleClass("hidden", stateName !== "jiabei");
+      $("#jiabeiSection").toggleClass("flex", stateName === "jiabei");
+      $("#loadingSection").toggleClass("hidden", stateName !== "loading");
+      $("#loadingSection").toggleClass("flex", stateName === "loading");
+      $("#resultSection").toggleClass("hidden", stateName !== "result");
+    };
+
+    const renderPoemLines = (poemLines) => {
+      const lineHtml = poemLines.map((lineText) => {
+        return `
+          <div class="vertical-poem-line flex h-[17rem] min-w-[4.25rem] items-center justify-center rounded-3xl border border-amber-200/15 bg-gradient-to-b from-amber-200/10 to-transparent px-3 py-5 text-xl font-medium leading-loose text-amber-50 shadow-inner shadow-amber-100/5 sm:min-w-[4.75rem] sm:text-2xl">
+            ${lineText}
+          </div>
+        `;
+      }).join("");
+
+      $("#poemLines").html(lineHtml);
+    };
+
+    const renderChim = (chim) => {
+      currentChim = chim;
+
+      $("#chimNumberBadge").text(chim.title);
+      $("#chimFortuneBadge").text(chim.fortune);
+      $("#chimTitle").text(`${chim.title}・${chim.fortune}`);
+      $("#chimMeta").text(chim.trigram ? `卦象：${chim.trigram}` : "卦象：未提供");
+      $("#chimMeaning").text(chim.meaning);
+      $("#chimInterpretation").text(chim.interpretation);
+      $("#aiResult").text("抽到籤後，輸入你的問題，再按「請大師指點」。");
+      $("#aiStatus").text("尚未請求");
+      $("#promptPreviewWrapper").addClass("hidden");
+      $("#promptPreview").text("");
+      $("#userQuestion").val("");
+
+      renderPoemLines(chim.poemLines);
+      setSectionState("result");
+    };
+
+    const getRandomChim = () => {
+      if (chimData.length === 0) {
+        return null;
+      }
+
+      const randomIndex = Math.floor(Math.random() * chimData.length);
+      return chimData[randomIndex];
+    };
+
+    const getSelectedPersona = () => {
+      return PERSONA_OPTIONS[selectedPersonaId] || PERSONA_OPTIONS.templeKeeper;
+    };
+
+    const updatePersonaUi = () => {
+      const selectedPersona = getSelectedPersona();
+
+      $("#selectedPersonaName").text(selectedPersona.label);
+      $("#personaDescription").text(`${selectedPersona.description} 送出問題時，系統也會把這個角色一起帶進解籤提示。`);
+      $("#userQuestion").attr("placeholder", selectedPersona.placeholder);
+
+      $("#personaSelector .persona-chip").each((_, button) => {
+        const isActive = $(button).data("personaId") === selectedPersonaId;
+        $(button).toggleClass("is-active", isActive);
+      });
+    };
+
+    const setSelectedPersona = (personaId) => {
+      if (!PERSONA_OPTIONS[personaId]) {
+        return;
+      }
+
+      selectedPersonaId = personaId;
+      updatePersonaUi();
+    };
+
+    const clearJiabeiTimer = () => {
+      if (jiabeiStepTimeout) {
+        window.clearTimeout(jiabeiStepTimeout);
+        jiabeiStepTimeout = null;
+      }
+    };
+
+    const resetJiabeiVisual = () => {
+      $("#jiaobeiLeft")
+        .removeClass("is-tossing-left result-up-left result-down-left result-laugh-left result-lose-left")
+        .addClass("result-up-left");
+      $("#jiaobeiRight")
+        .removeClass("is-tossing-right result-up-right result-down-right result-laugh-right result-lose-right")
+        .addClass("result-down-right");
+    };
+
+    const resetJiabeiSection = () => {
+      clearJiabeiTimer();
+      resetJiabeiVisual();
+      $("#jiabeiRoundLabel").text(`第 1 / ${JIAOBEI_REQUIRED_SUCCESSES} 次擲筊`);
+      $("#jiabeiStatus").text("正在請示神明是否賜筊...");
+      $("#jiabeiHint").text("須連續獲得三次聖筊，才會進入正式求籤流程；若中途未獲應允，將回到首頁重新請示。");
+      $("#jiabeiHistory").html("");
+    };
+
+    const getRandomJiabeiResult = () => {
+      const randomValue = Math.random();
+
+      if (randomValue < 0.45) {
+        return JIAOBEI_RESULTS.sheng;
+      }
+
+      if (randomValue < 0.75) {
+        return JIAOBEI_RESULTS.xiao;
+      }
+
+      return JIAOBEI_RESULTS.yin;
+    };
+
+    const applyJiabeiResultVisual = (result) => {
+      $("#jiaobeiLeft")
+        .removeClass("is-tossing-left result-up-left result-down-left result-laugh-left result-lose-left")
+        .addClass(result.leftClass);
+      $("#jiaobeiRight")
+        .removeClass("is-tossing-right result-up-right result-down-right result-laugh-right result-lose-right")
+        .addClass(result.rightClass);
+    };
+
+    const appendJiabeiHistory = (roundIndex, result) => {
+      const badgeClass = result.isSuccess ? "is-success" : "is-failure";
+
+      $("#jiabeiHistory").append(`
+        <span class="jiaobei-result-badge ${badgeClass} inline-flex rounded-full px-3 py-1 text-xs font-medium">
+          第 ${roundIndex} 次：${result.label}
+        </span>
+      `);
+    };
+
+    const getJiabeiFailureStatusText = () => {
+      if (consecutiveJiabeiFailures >= JIAOBEI_FAILURE_BYPASS_THRESHOLD) {
+        return `連續 ${consecutiveJiabeiFailures} 次未獲三聖筊，下次將直接進入求籤。`;
+      }
+
+      return `此次未獲三次聖筊，累計失敗 ${consecutiveJiabeiFailures} 次；連續 ${JIAOBEI_FAILURE_BYPASS_THRESHOLD} 次後，下次可直接求籤。`;
+    };
+
+    const stopDrawAnimation = () => {
+      if (drawAnimationInterval) {
+        window.clearInterval(drawAnimationInterval);
+        drawAnimationInterval = null;
+      }
+
+      $("#fortuneSticks .fortune-stick").removeClass("is-active");
+      $("#fortuneVessel").removeClass("is-settling");
+    };
+
+    const resetDrawReveal = () => {
+      $("#drawRevealStick")
+        .removeClass("is-visible is-dropping")
+        .css("animation", "none");
+      $("#drawImpactRing")
+        .removeClass("is-active")
+        .css("animation", "none");
+
+      window.requestAnimationFrame(() => {
+        $("#drawRevealStick").css("animation", "");
+        $("#drawImpactRing").css("animation", "");
+      });
+    };
+
+    const clearDrawTimers = () => {
+      if (drawResultTimeout) {
+        window.clearTimeout(drawResultTimeout);
+        drawResultTimeout = null;
+      }
+
+      if (drawRevealTimeout) {
+        window.clearTimeout(drawRevealTimeout);
+        drawRevealTimeout = null;
+      }
+    };
+
+    const startDrawPhase = (selectedChim) => {
+      consecutiveJiabeiFailures = 0;
+      setSectionState("loading");
+      startDrawAnimation(selectedChim);
+
+      drawResultTimeout = window.setTimeout(() => {
+        drawResultTimeout = null;
+        stopDrawAnimation();
+        resetDrawReveal();
+        renderChim(selectedChim);
+      }, DRAW_ANIMATION_DURATION);
+    };
+
+    const runJiabeiRound = (selectedChim, roundIndex) => {
+      $("#jiabeiRoundLabel").text(`第 ${roundIndex} / ${JIAOBEI_REQUIRED_SUCCESSES} 次擲筊`);
+      $("#jiabeiStatus").text(`第 ${roundIndex} 次擲筊中...`);
+      $("#jiabeiHint").text("筊杯落地後將立即判定本次結果。");
+
+      $("#jiaobeiLeft")
+        .removeClass("result-up-left result-down-left result-laugh-left result-lose-left")
+        .addClass("is-tossing-left");
+      $("#jiaobeiRight")
+        .removeClass("result-up-right result-down-right result-laugh-right result-lose-right")
+        .addClass("is-tossing-right");
+
+      jiabeiStepTimeout = window.setTimeout(() => {
+        jiabeiStepTimeout = null;
+        const result = getRandomJiabeiResult();
+
+        applyJiabeiResultVisual(result);
+        appendJiabeiHistory(roundIndex, result);
+        $("#jiabeiStatus").text(result.statusText);
+        $("#jiabeiHint").text(result.hintText);
+
+        if (result.isSuccess) {
+          if (roundIndex >= JIAOBEI_REQUIRED_SUCCESSES) {
+            $("#jiabeiStatus").text("已連續獲得三次聖筊，準備進入求籤。");
+            $("#jiabeiHint").text("神明已允准，稍後將正式為你抽出靈籤。");
+
+            jiabeiStepTimeout = window.setTimeout(() => {
+              jiabeiStepTimeout = null;
+              resetJiabeiSection();
+              startDrawPhase(selectedChim);
+            }, JIAOBEI_NEXT_DELAY);
+
+            return;
+          }
+
+          jiabeiStepTimeout = window.setTimeout(() => {
+            jiabeiStepTimeout = null;
+            runJiabeiRound(selectedChim, roundIndex + 1);
+          }, JIAOBEI_NEXT_DELAY);
+
+          return;
+        }
+
+        jiabeiStepTimeout = window.setTimeout(() => {
+          jiabeiStepTimeout = null;
+          consecutiveJiabeiFailures += 1;
+          resetJiabeiSection();
+          setSectionState("home");
+          $("#dataStatus").text(getJiabeiFailureStatusText());
+        }, JIAOBEI_RETURN_DELAY);
+      }, JIAOBEI_TOSS_DURATION);
+    };
+
+    const startJiabeiSequence = (selectedChim) => {
+      clearDrawTimers();
+      clearJiabeiTimer();
+      stopDrawAnimation();
+      resetDrawReveal();
+      resetJiabeiSection();
+      setSectionState("jiabei");
+      runJiabeiRound(selectedChim, 1);
+    };
+
+    const updateDrawAnimationFrame = () => {
+      const previewChim = getRandomChim();
+      const fortuneSticks = $("#fortuneSticks .fortune-stick");
+      const activeStickIndex = Math.floor(Math.random() * Math.max(fortuneSticks.length, 1));
+      const previewMessage = DRAW_ANIMATION_MESSAGES[Math.floor(Math.random() * DRAW_ANIMATION_MESSAGES.length)];
+
+      fortuneSticks.removeClass("is-active");
+      fortuneSticks.eq(activeStickIndex).addClass("is-active");
+
+      if (previewChim) {
+        $("#drawPreviewNumber").text(previewChim.title);
+      } else {
+        $("#drawPreviewNumber").text("第 00 籤");
+      }
+
+      $("#drawPreviewLine").text(previewMessage);
+    };
+
+    const triggerRevealDrop = (selectedChim) => {
+      stopDrawAnimation();
+
+      $("#drawPreviewNumber").text(selectedChim.title);
+      $("#drawPreviewLine").text("靈籤落定，一支籤已離筒而出，請靜候神意揭曉。");
+      $("#drawRevealStickLabel").text(selectedChim.title.replace("第 ", "").replace(" 籤", "號"));
+      $("#fortuneVessel").addClass("is-settling");
+      resetDrawReveal();
+
+      window.requestAnimationFrame(() => {
+        $("#drawRevealStick").addClass("is-visible is-dropping");
+        $("#drawImpactRing").addClass("is-active");
+      });
+    };
+
+    const startDrawAnimation = (selectedChim) => {
+      stopDrawAnimation();
+      clearDrawTimers();
+      resetDrawReveal();
+
+      $("#drawPreviewNumber").text("第 00 籤");
+      $("#drawPreviewLine").text("請保持心念專一，籤筒正在微微晃動，為你請示今日籤意。");
+
+      updateDrawAnimationFrame();
+      drawAnimationInterval = window.setInterval(updateDrawAnimationFrame, 180);
+
+      drawRevealTimeout = window.setTimeout(() => {
+        drawRevealTimeout = null;
+        triggerRevealDrop(selectedChim);
+      }, DRAW_SHAKE_DURATION);
+    };
+
+    const truncatePromptField = (text, maxLength = 80) => {
+      const normalizedText = String(text || "").replace(/\s+/g, " ").trim();
+
+      if (!normalizedText) {
+        return "未提供";
+      }
+
+      return normalizedText.length > maxLength
+        ? `${normalizedText.slice(0, maxLength)}...`
+        : normalizedText;
+    };
+
+    const buildPrompt = (questionText, chim, options = {}) => {
+      const compactMode = Boolean(options.compactMode);
+      const persona = options.persona || getSelectedPersona();
+      const poemText = chim.poemLines.join(" / ");
+      const shortMeaning = truncatePromptField(chim.meaning, 70);
+      const shortInterpretation = truncatePromptField(chim.interpretation, 120);
+      const roleAwareQuestion = persona.framedQuestion(questionText);
+
+      if (compactMode) {
+        return [
+          persona.rolePrompt,
+          `角色口吻：${persona.tonePrompt}`,
+          "請只回覆一段 80 到 100 字的繁體中文建議。",
+          "請自然帶出角色感，但不要變成表演台詞，也不要自稱 AI。",
+          "不要前言、標題、分析過程、條列或重述題目。",
+          "",
+          `使用角色：${persona.label}`,
+          `角色帶入後的提問：${truncatePromptField(roleAwareQuestion, 72)}`,
+          `籤意：${chim.title} ${chim.fortune}`,
+          `詩文：${truncatePromptField(poemText, 48)}`,
+          `解曰：${truncatePromptField(chim.meaning, 36)}`,
+          `含義：${truncatePromptField(chim.interpretation, 60)}`
+        ].join("\n");
+      }
+
+      return [
+        persona.rolePrompt,
+        `角色口吻：${persona.tonePrompt}`,
+        "請根據提問與籤意，直接回覆一段 80 到 100 字的建議。",
+        "語氣溫柔沉穩、給人方向感，避免恐嚇、避免武斷、避免過度玄學。",
+        "請自然融入角色氣質，但不要模仿真實人物口頭禪，也不要寫成戲劇表演。",
+        "不要重述題目，不要加前言、標題、分析過程或條列。",
+        "",
+        `使用角色：${persona.label}`,
+        `角色帶入後的提問：${roleAwareQuestion}`,
+        `籤序標題：${chim.title} ${chim.fortune}`,
+        `卦象：${chim.trigram || "未提供"}`,
+        `四句詩文：${poemText}`,
+        `解曰重點：${shortMeaning}`,
+        `含義重點：${shortInterpretation}`
+      ].join("\n");
+    };
+
+    const buildCompletionPrompt = (originalPrompt, partialAnswer) => {
+      return [
+        "你上一段繁體中文回覆在最後一句被截斷了。",
+        "請依照原始任務，重新輸出一份完整版本。",
+        "限制為 80 到 100 字，語氣自然完整，句子必須收尾，不要斷在半句。",
+        "不要解釋、不用前言、不要說明你有補完過。",
+        "",
+        "原始任務：",
+        originalPrompt,
+        "",
+        "剛才已產生但不完整的內容：",
+        partialAnswer
+      ].join("\n");
+    };
+
+    const buildStrictCompletionPrompt = (originalPrompt) => {
+      return [
+        "請重新產生一份可直接顯示的最終解籤內容。",
+        "必須符合以下規則：",
+        "1. 只輸出一段繁體中文，不要標題、前言、條列或解釋。",
+        "2. 長度控制在 80 到 100 字。",
+        "3. 內容必須自然收尾，最後請以句號、驚嘆號或問號結束。",
+        "4. 不要留下半句，不要中途截斷。",
+        "",
+        "原始任務：",
+        originalPrompt
+      ].join("\n");
+    };
+
+    const hasCompleteEnding = (text) => COMPLETE_SENTENCE_ENDINGS.test(String(text || "").trim());
+
+    const extractCompletedPortion = (text) => {
+      const normalizedText = String(text || "").trim();
+
+      if (!normalizedText) {
+        return "";
+      }
+
+      const sentenceMatches = normalizedText.match(/.+?[。！？!?](?=(?:\s|$))/g);
+
+      if (sentenceMatches && sentenceMatches.length > 0) {
+        return sentenceMatches.join("").trim();
+      }
+
+      return "";
+    };
+
+    const isResponseIncomplete = (text, finishReason) => {
+      const normalizedText = String(text || "").trim();
+
+      if (!normalizedText) {
+        return true;
+      }
+
+      if (finishReason === "MAX_TOKENS") {
+        return true;
+      }
+
+      return normalizedText.length >= 24 && !hasCompleteEnding(normalizedText);
+    };
+
+    const handleDraw = () => {
+      if (chimData.length === 0) {
+        $("#dataStatus").text("籤詩資料尚未就緒，請稍候再試。");
+        return;
+      }
+
+      const selectedChim = getRandomChim();
+
+      if (!selectedChim) {
+        $("#dataStatus").text("抽籤失敗，請重新再試。");
+        return;
+      }
+
+      if (consecutiveJiabeiFailures >= JIAOBEI_FAILURE_BYPASS_THRESHOLD) {
+        $("#dataStatus").text("已累積三次未得三聖筊，本次直接進入求籤。");
+        startDrawPhase(selectedChim);
+        return;
+      }
+
+      startJiabeiSequence(selectedChim);
+    };
+
+    const parseGeminiResponse = (response) => {
+      const candidate = response?.candidates?.[0];
+      const parts = candidate?.content?.parts;
+      const text = Array.isArray(parts)
+        ? parts
+          .map((part) => part?.text || "")
+          .join("\n")
+          .trim()
+        : "";
+
+      return {
+        text,
+        finishReason: candidate?.finishReason || ""
+      };
+    };
+
+    const ajaxPromise = (options) => {
+      return new Promise((resolve, reject) => {
+        $.ajax(options)
+          .done(resolve)
+          .fail(reject);
+      });
+    };
+
+    const getStoredGeminiApiKey = () => {
+      try {
+        return window.sessionStorage.getItem(GEMINI_API_KEY_STORAGE_KEY) || inMemoryGeminiApiKey;
+      } catch (error) {
+        return inMemoryGeminiApiKey;
+      }
+    };
+
+    const setStoredGeminiApiKey = (apiKey) => {
+      inMemoryGeminiApiKey = apiKey;
+
+      try {
+        window.sessionStorage.setItem(GEMINI_API_KEY_STORAGE_KEY, apiKey);
+      } catch (error) {
+        // sessionStorage 不可用時，退回本頁記憶體暫存。
+      }
+    };
+
+    const clearStoredGeminiApiKey = () => {
+      inMemoryGeminiApiKey = "";
+
+      try {
+        window.sessionStorage.removeItem(GEMINI_API_KEY_STORAGE_KEY);
+      } catch (error) {
+        // Ignore storage errors and continue updating the UI.
+      }
+    };
+
+    const maskApiKey = (apiKey) => {
+      if (!apiKey) {
+        return "尚未輸入 Gemini API Key。";
+      }
+
+      if (apiKey.length <= 8) {
+        return `${apiKey.slice(0, 2)}****`;
+      }
+
+      return `${apiKey.slice(0, 4)}...${apiKey.slice(-4)}`;
+    };
+
+    const updateApiKeyUi = () => {
+      const apiKey = getStoredGeminiApiKey();
+
+      if (apiKey) {
+        $("#apiKeyStatus").text(`目前已載入個人 Gemini API Key（${maskApiKey(apiKey)}），僅暫存在這個瀏覽器分頁。`);
+        return;
+      }
+
+      $("#apiKeyStatus").text("尚未輸入 Gemini API Key。第一次進站時會跳出視窗要求輸入，預設只暫存在目前分頁。");
+    };
+
+    const openApiKeyModal = (message = "") => {
+      $("#apiKeyModalHint").text(
+        message || "進入系統後若要使用 AI 解籤，請先貼上你自己的 Gemini API Key。系統預設只會暫存在這個瀏覽器分頁中。"
+      );
+      $("#apiKeyModalStatus").text("");
+      $("#apiKeyInput").val(getStoredGeminiApiKey());
+      $("#apiKeyModal").removeClass("hidden").addClass("flex");
+
+      window.setTimeout(() => {
+        $("#apiKeyInput").trigger("focus");
+      }, 30);
+    };
+
+    const closeApiKeyModal = () => {
+      $("#apiKeyModal").removeClass("flex").addClass("hidden");
+      $("#apiKeyModalStatus").text("");
+    };
+
+    const requireGeminiApiKey = (message = "請先輸入你的 Gemini API Key，才能使用 AI 解籤。") => {
+      const apiKey = getStoredGeminiApiKey().trim();
+
+      if (apiKey) {
+        return apiKey;
+      }
+
+      openApiKeyModal(message);
+      return "";
+    };
+
+    const saveApiKeyFromModal = () => {
+      const apiKey = String($("#apiKeyInput").val() || "").trim();
+
+      if (!apiKey) {
+        $("#apiKeyModalStatus").text("請先輸入 Gemini API Key。");
+        return;
+      }
+
+      setStoredGeminiApiKey(apiKey);
+      updateApiKeyUi();
+      closeApiKeyModal();
+    };
+
+    const requestGeminiViaProxy = (prompt, maxOutputTokens, model = GEMINI_MODEL) => {
+      const apiKey = requireGeminiApiKey();
+
+      if (!apiKey) {
+        return Promise.reject({
+          responseJSON: {
+            error: "尚未輸入 Gemini API Key。"
+          }
+        });
+      }
+
+      return ajaxPromise({
+        url: GEMINI_PROXY_URL,
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+          apiKey,
+          model,
+          prompt,
+          maxOutputTokens
+        })
+      });
+    };
+
+    const handleAskAi = async () => {
+      if (!currentChim) {
+        $("#aiStatus").text("尚未抽籤");
+        $("#aiResult").text("請先抽一支籤，再進行 AI 解籤。");
+        return;
+      }
+
+      const userQuestion = String($("#userQuestion").val() || "").trim();
+      const selectedPersona = getSelectedPersona();
+
+      if (!userQuestion) {
+        $("#aiStatus").text("請先輸入問題");
+        $("#aiResult").text("請先輸入你想請教神明的具體事項，例如：轉職、感情、合作。");
+        return;
+      }
+
+      const prompt = buildPrompt(userQuestion, currentChim, { persona: selectedPersona });
+
+      $("#promptPreviewWrapper").removeClass("hidden");
+      $("#promptPreview").text(prompt);
+
+      if (window.location.protocol === "file:") {
+        $("#aiStatus").text("需要本機伺服器");
+        $("#aiResult").html(
+          "你目前是用 `file://` 直接開啟頁面，無法呼叫本機 Proxy。<br>請改用 `node server.js` 啟動本機伺服器後，再開啟 `http://localhost:3000`。"
+        );
+        return;
+      }
+
+      if (!getStoredGeminiApiKey().trim()) {
+        $("#aiStatus").text("需要 API Key");
+        $("#aiResult").text("請先輸入你的 Gemini API Key，之後才能送出 AI 解籤。");
+        openApiKeyModal("要使用 AI 解籤，請先輸入你的 Gemini API Key。");
+        return;
+      }
+
+      $("#aiStatus").text(`AI 思考中・${selectedPersona.label}`);
+      $("#aiResult").html(`正在以「${selectedPersona.label}」的口吻整理籤意，請稍候...`);
+
+      try {
+        let response = await requestGeminiViaProxy(prompt, AI_PRIMARY_MAX_TOKENS, GEMINI_MODELS[0]);
+        let { text: aiMessage, finishReason } = parseGeminiResponse(response);
+
+        if (!aiMessage) {
+          $("#aiStatus").text("回應格式異常");
+          $("#aiResult").text("Gemini 已回應，但目前讀不到內容，請稍後重試。");
+          return;
+        }
+
+        if (isResponseIncomplete(aiMessage, finishReason)) {
+          const completionPrompt = buildCompletionPrompt(prompt, aiMessage);
+
+          $("#aiStatus").text(`回覆補完中・${selectedPersona.label}`);
+          $("#aiResult").html(`系統偵測到回覆尾句未完成，正在重新補完內容，請稍候...`);
+          $("#promptPreview").text(completionPrompt);
+
+          response = await requestGeminiViaProxy(completionPrompt, AI_RETRY_MAX_TOKENS, GEMINI_MODELS[0]);
+          ({ text: aiMessage, finishReason } = parseGeminiResponse(response));
+
+          if (!aiMessage) {
+            $("#aiStatus").text("回應格式異常");
+            $("#aiResult").text("Gemini 已重試，但目前仍讀不到內容，請稍後重試。");
+            return;
+          }
+
+          if (isResponseIncomplete(aiMessage, finishReason)) {
+            const strictCompletionPrompt = buildStrictCompletionPrompt(prompt);
+            const fallbackModel = GEMINI_MODELS[1] || GEMINI_MODELS[0];
+
+            $("#aiStatus").text(`正在切換模型補完・${selectedPersona.label}`);
+            $("#aiResult").html(`目前模型回覆仍未完整，系統正改用備援模型重新整理完整內容，請稍候...`);
+            $("#promptPreview").text(strictCompletionPrompt);
+
+            response = await requestGeminiViaProxy(strictCompletionPrompt, AI_RETRY_MAX_TOKENS, fallbackModel);
+            ({ text: aiMessage, finishReason } = parseGeminiResponse(response));
+
+            if (!aiMessage) {
+              $("#aiStatus").text("回應格式異常");
+              $("#aiResult").text("Gemini 備援模型已回應，但目前仍讀不到內容，請稍後重試。");
+              return;
+            }
+
+            if (isResponseIncomplete(aiMessage, finishReason)) {
+              const completedPortion = extractCompletedPortion(aiMessage);
+
+              if (completedPortion) {
+                $("#aiStatus").text(`已顯示完整段落・${selectedPersona.label}`);
+                $("#aiResult").text(completedPortion);
+                return;
+              }
+
+              $("#aiStatus").text(`請再試一次・${selectedPersona.label}`);
+              $("#aiResult").text("本次 AI 回覆仍未完整收尾，系統已避免顯示半句內容，建議再按一次「請大師指點」。");
+              return;
+            }
+          }
+        }
+
+        $("#aiStatus").text(`完成・${selectedPersona.label}`);
+        $("#aiResult").text(aiMessage);
+      } catch (xhr) {
+        const errorMessage =
+          xhr?.responseJSON?.error?.message ||
+          xhr?.responseJSON?.error ||
+          "Gemini 解籤請求失敗，請確認 API Key、模型名稱或網路連線。";
+
+        $("#aiStatus").text("請求失敗");
+        $("#aiResult").text(errorMessage);
+      }
+    };
+
+    const loadChimData = () => {
+      $("#drawButton").prop("disabled", true);
+      $("#dataStatus").text("籤詩資料載入中...");
+
+      $.getJSON(DATA_URL)
+        .done((response) => {
+          const rawList = Array.isArray(response)
+            ? response
+            : Array.isArray(response?.chims)
+              ? response.chims
+              : [];
+
+          chimData = rawList.map((item, index) => normalizeChim(item, index));
+
+          if (chimData.length === 0) {
+            $("#dataStatus").text("找不到可用的籤詩資料。");
+            return;
+          }
+
+          $("#drawButton").prop("disabled", false);
+          $("#dataStatus").text(`資料已就緒，共載入 ${chimData.length} 支籤。`);
+          $("#convertStatus").text(convertModeText);
+        })
+        .fail(() => {
+          $("#dataStatus").text("籤詩資料載入失敗，請確認網路連線後重新整理。");
+          $("#convertStatus").text(`${convertModeText} 若資料仍無法載入，可稍後再試。`);
+        });
+    };
+
+    $(document).ready(() => {
+      tryInitOpenCC();
+      $("#convertStatus").text(convertModeText);
+      updatePersonaUi();
+      updateApiKeyUi();
+
+      $("#drawButton").on("click", handleDraw);
+      $("#redrawButton").on("click", handleDraw);
+      $("#aiButton").on("click", handleAskAi);
+      $("#changeApiKeyButton").on("click", () => {
+        openApiKeyModal("你可以在這裡輸入新的 Gemini API Key，系統會改用這把 key 來解籤。");
+      });
+      $("#saveApiKeyButton").on("click", saveApiKeyFromModal);
+      $("#skipApiKeyButton").on("click", closeApiKeyModal);
+      $("#closeApiKeyModalButton").on("click", closeApiKeyModal);
+      $("#clearApiKeyButton").on("click", () => {
+        clearStoredGeminiApiKey();
+        $("#apiKeyInput").val("");
+        $("#apiKeyModalStatus").text("目前分頁內暫存的 Gemini API Key 已清除。");
+        updateApiKeyUi();
+      });
+      $("#personaSelector").on("click", ".persona-chip", function () {
+        setSelectedPersona($(this).data("personaId"));
+      });
+
+      $("#apiKeyInput").on("keydown", (event) => {
+        if (event.key === "Enter") {
+          saveApiKeyFromModal();
+        }
+      });
+
+      $("#userQuestion").on("keydown", (event) => {
+        if (event.key === "Enter") {
+          handleAskAi();
+        }
+      });
+
+      loadChimData();
+
+      if (!getStoredGeminiApiKey()) {
+        window.setTimeout(() => {
+          openApiKeyModal();
+        }, 250);
+      }
+    });
+  </script>
+</body>
+</html>
